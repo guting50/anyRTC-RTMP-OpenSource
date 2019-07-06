@@ -66,7 +66,7 @@ void AnyRtmplayerImpl::StartPlay(const char* url)
 	str_url_ = url;
 	rtc::Thread::Post(RTC_FROM_HERE, this, PLY_START);
 
-    rtc::Thread::PostDelayed(RTC_FROM_HERE, 1000, this, PLY_TICK);
+    rtc::Thread::Post(RTC_FROM_HERE, this, PLY_TICK);
 }
 
 void AnyRtmplayerImpl::SetVideoRender(void* handle)
@@ -116,7 +116,7 @@ void AnyRtmplayerImpl::OnMessage(rtc::Message* msg)
                 callback_.OnRtmplayerCache(ply_decoder_->CacheTime());
             }
         }
-        rtc::Thread::PostDelayed(RTC_FROM_HERE, 1000, this, PLY_TICK);
+        rtc::Thread::Post(RTC_FROM_HERE, this, PLY_TICK);
     }
         break;
 	}

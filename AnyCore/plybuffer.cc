@@ -19,11 +19,11 @@
 #include "plybuffer.h"
 #include "webrtc/base/logging.h"
 
-#define PLY_MIN_TIME	500		// 0.5s
+#define PLY_MIN_TIME	1		// 0.5s
 #define PLY_MAX_TIME	600000		// 10minute
-#define PLY_RED_TIME	250		// redundancy time
-#define PLY_MAX_DELAY	1000		// 1 second
-#define PLY_MAX_CACHE   16      	// 16s
+#define PLY_RED_TIME	1		// redundancy time
+#define PLY_MAX_DELAY	1		// 1 second
+#define PLY_MAX_CACHE   1      	// 16s
 
 #define PB_TICK	1011
 
@@ -31,7 +31,7 @@ PlyBuffer::PlyBuffer(PlyBufferCallback&callback, rtc::Thread*worker)
 	: callback_(callback)
 	, worker_thread_(NULL)
 	, got_audio_(false)
-	, cache_time_(1000)	// default 1000ms(1s)
+	, cache_time_(30)	// default 1000ms(1s)
 	, cache_delta_(1)
     , buf_cache_time_(0)
 	, ply_status_(PS_Fast)
@@ -64,7 +64,7 @@ PlyBuffer::~PlyBuffer()
 
 void PlyBuffer::SetCacheSize(int miliseconds/*ms*/)
 {
-	if (miliseconds > 500 && miliseconds <= 600000) {	//* 0.5s ~ 10 minute
+	if (miliseconds > PLY_MIN_TIME && miliseconds <= PLY_MAX_TIME) {	//* 0.5s ~ 10 minute
 		cache_time_ = miliseconds;
 	}
 }
@@ -148,7 +148,7 @@ void PlyBuffer::DoDecode()
 				}
 			}
 			else {
-				if (videoSysGap >= PLY_RED_TIME * 4)
+				if (videoSysGap >= PLY_RED_TIME * 1)
 				{
 					rtc::CritScope cs(&cs_list_video_);
 					if (lst_video_buffer_.size() > 0) {
@@ -165,7 +165,7 @@ void PlyBuffer::DoDecode()
 		PlyPacket* pkt_video = NULL;
 		uint32_t media_buf_time = 0;
 		uint32_t play_video_time = play_cur_time_;
-		{//* Get audio 
+		{//* Get audio
 			rtc::CritScope cs(&cs_list_audio_);
 			if (lst_audio_buffer_.size() > 0) {
 				media_buf_time = lst_audio_buffer_.back()->_dts - lst_audio_buffer_.front()->_dts;
@@ -179,8 +179,8 @@ void PlyBuffer::DoDecode()
 				play_video_time = rtmp_fast_video_time_ + videoSysGap;
 			}
 		}
-	
-		{//* Get video 
+
+		{//* Get video
 			rtc::CritScope cs(&cs_list_video_);
 			if (lst_video_buffer_.size() > 0) {
 				pkt_video = lst_video_buffer_.front();
@@ -199,15 +199,17 @@ void PlyBuffer::DoDecode()
 			}
 		}
 
+        /*
 		if (media_buf_time <= PLY_RED_TIME) {
 			// Play buffer is so small, then we need buffer it?
 			callback_.OnPause();
 			ply_status_ = PS_Cache;
-            cache_time_ = cache_delta_ * 1000;
+            cache_time_ = cache_delta_ * 35;
             if(cache_delta_ < PLY_MAX_CACHE)
                 cache_delta_ *= 2;
 			rtmp_cache_time_ = rtc::Time() + cache_time_;
 		}
+		*/
         buf_cache_time_ = media_buf_time;
 	}
 	else if (ply_status_ == PS_Cache) {
